@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador F1 - Campeonato de Reação</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background-color: #121214;
+      color: #e1e1e6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #e50914;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .btn-conectar {
+      background-color: #e50914;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .grid-principal {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 1100px;
+    }
+    .painel-jogo {
+      background-color: #202024;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .painel-ranking {
+      background-color: #202024;
+      padding: 20px;
+      border-radius: 8px;
+      border-top: 4px solid #f59e0b;
+    }
+    .status-partida {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00e676;
+      margin-bottom: 15px;
+      text-align: center;
+      padding: 10px;
+      background: #121214;
+      border-radius: 6px;
+    }
+    .cards-status {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .card {
+      background: #29292e;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .card h4 {
+      font-size: 12px;
+      color: #a8a8b3;
+      text-transform: uppercase;
+    }
+    .card .val {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    .box-penalidades {
+      background: #29292e;
+      border-left: 4px solid #ff5252;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    .box-penalidades h3 {
+      color: #ff5252;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .box-penalidades p {
+      font-size: 13px;
+      color: #c4c4cc;
+      line-height: 1.4;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 8px 12px;
+      text-align: center;
+      border-bottom: 1px solid #323238;
+      font-size: 14px;
+    }
+    th {
+      color: #a8a8b3;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .status-ok { color: #00e676; font-weight: bold; }
+    .status-queima { color: #ff5252; font-weight: bold; }
+    
+    /* MODAL DE CADASTRO TOP 7 */
+    .box-cadastro {
+      background: #29292e;
+      border: 2px solid #f59e0b;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: none;
+      text-align: center;
+    }
+    .box-cadastro input {
+      padding: 8px 12px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #4d4d57;
+      background: #121214;
+      color: white;
+      text-align: center;
+      width: 80%;
+      margin: 10px 0;
+    }
+    .box-cadastro button {
+      background: #f59e0b;
+      color: black;
+      font-weight: bold;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Simulador F1 - Teste de Reação</h1>
+  <button class="btn-conectar" id="btnConectar">Conectar ao Arduino</button>
+
+  <div class="grid-principal">
+    
+    <!-- ÁREA DO JOGO ATUAL -->
+    <div class="painel-jogo">
+      <div class="status-partida" id="lblStatus">Pressione o botão para iniciar a Rodada 1/5</div>
+      
+      <div class="cards-status">
+        <div class="card">
+          <h4>Rodada Atual</h4>
+          <div class="val" id="valRodada">1 / 5</div>
+        </div>
+        <div class="card">
+          <h4>Queimas (Penalidades)</h4>
+          <div class="val" id="valQueimas" style="color: #ff5252;">0 (+0ms)</div>
+        </div>
+        <div class="card">
+          <h4>Média Final</h4>
+          <div class="val" id="valMedia" style="color: #00e676;">-- ms</div>
+        </div>
+      </div>
+
+      <!-- BOX DE CADASTRO TOP 7 -->
+      <div class="box-cadastro" id="boxCadastro">
+        <h3 style="color: #f59e0b;">PARABÉNS! VOCÊ ENTROU NO TOP 7!</h3>
+        <p style="font-size: 13px; color: #a8a8b3;">Digite seu nome abaixo e pressione ENTER no teclado:</p>
+        <input type="text" id="txtNomePiloto" maxlength="12" placeholder="Seu Nome / Apelido" autofocus>
+        <br>
+        <button id="btnSalvarNome">Salvar no Ranking</button>
+      </div>
+
+      <!-- DEMONSTRATIVO DE PENALIDADES EXPLÍCITAS -->
+      <div class="box-penalidades" id="boxPenalidades">
+        <h3>Detalhamento do Cálculo da Média Final</h3>
+        <p id="detalheCalculo">--</p>
+      </div>
+
+      <h2>Histórico da Partida</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Tentativa</th>
+            <th>Tempo Bruto</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaHistorico"></tbody>
+      </table>
+    </div>
+
+    <!-- PAINEL DO RANKING TOP 7 -->
+    <div class="painel-ranking">
+      <h2 style="color: #f59e0b; text-align: center; margin-bottom: 10px;">TOP 7 MELHORES TEMPOS</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Piloto</th>
+            <th>Média Final</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaRanking"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    let portaSerial;
+    
+    // VARIÁVEIS DE ESTADO DA PARTIDA
+    let rodadasValidas = []; // Guarda os tempos das 5 rodadas válidas
+    let totalQueimas = 0;
+    let historicoTentativas = [];
+    let jogoFinalizado = false;
+    let aguardandoNome = false;
+
+    // CARREGAR RANKING DO LOCALSTORAGE
+    let ranking = JSON.parse(localStorage.getItem('f1_top7_ranking')) || [];
+
+    atualizarTabelaRanking();
+
+    // CONECTAR SERIAL
+    document.getElementById('btnConectar').addEventListener('click', async () => {
+      if ('serial' in navigator) {
+        try {
+          portaSerial = await navigator.serial.requestPort();
+          await portaSerial.open({ baudRate: 9600 });
+          document.getElementById('btnConectar').innerText = "Conectado!";
+          document.getElementById('btnConectar').style.backgroundColor = "#00e676";
+          document.getElementById('btnConectar').style.color = "#000";
+          lerDadosSerial();
+        } catch (err) {
+          alert("Erro ao conectar: " + err);
+        }
+      } else {
+        alert("Use o Google Chrome ou Edge para suporte a Web Serial.");
+      }
+    });
+
+    // LEITURA SERIAL
+    async function lerDadosSerial() {
+      const decodificador = new TextDecoderStream();
+      portaSerial.readable.pipeTo(decodificador.writable);
+      const leitor = decodificador.readable.getReader();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await leitor.read();
+        if (done) break;
+        buffer += value;
+        let linhas = buffer.split("\n");
+        buffer = linhas.pop();
+
+        for (let linha of linhas) {
+          processarComando(linha.trim());
+        }
+      }
+    }
+
+    // PROCESSA SINAIS DO ARDUINO
+    function processarComando(cmd) {
+      if (cmd === "INICIAR_RODADA") {
+        if (jogoFinalizado) {
+          if (aguardandoNome) {
+            salvarPilotoNoRanking();
+          } else {
+            resetarJogoParaNovoJogador();
+          }
+        }
+      } 
+      else if (cmd.startsWith("TEMPO:")) {
+        if (!jogoFinalizado) {
+          let tempoMs = parseInt(cmd.split(":")[1]);
+          registrarTentativa(tempoMs, "VÁLIDO");
+        }
+      } 
+      else if (cmd === "QUEIMA") {
+        if (!jogoFinalizado) {
+          registrarTentativa(null, "QUEIMA DE LARGADA");
+        }
+      }
+    }
+
+    // REGISTRO DE RODADAS E QUEIMAS
+    function registrarTentativa(tempo, status) {
+      if (status === "VÁLIDO") {
+        rodadasValidas.push(tempo);
+        historicoTentativas.push({ tentativa: historicoTentativas.length + 1, tempo: tempo + " ms", status: status });
+      } else {
+        totalQueimas++;
+        historicoTentativas.push({ tentativa: historicoTentativas.length + 1, tempo: "--", status: status });
+      }
+
+      atualizarInterface();
+
+      // VERIFICA SE COMPLETOU AS 5 RODADAS VÁLIDAS
+      if (rodadasValidas.length === 5) {
+        finalizarPartida();
+      }
+    }
+
+    function atualizarInterface() {
+      document.getElementById('valRodada').innerText = `${rodadasValidas.length} / 5`;
+      document.getElementById('valQueimas').innerText = `${totalQueimas} (+${totalQueimas * 50}ms)`;
+      
+      if (!jogoFinalizado) {
+        document.getElementById('lblStatus').innerText = `Rodada ${rodadasValidas.length + 1} de 5 - Pressione o botão do Arduino quando quiser iniciar!`;
+      }
+
+      // Atualiza tabela de histórico
+      const tbody = document.getElementById('tabelaHistorico');
+      tbody.innerHTML = "";
+      for (let i = historicoTentativas.length - 1; i >= 0; i--) {
+        let item = historicoTentativas[i];
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${item.tentativa}</td>
+          <td>${item.tempo}</td>
+          <td class="${item.status === 'VÁLIDO' ? 'status-ok' : 'status-queima'}">${item.status}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // FINALIZAÇÃO DAS 5 RODADAS E CÁLCULO DE PENALIDADE
+    function finalizarPartida() {
+  jogoFinalizado = true;
+
+  let somaTempos = rodadasValidas.reduce((a, b) => a + b, 0);
+  let mediaPura = Math.round(somaTempos / 5);
+  let penalidadeTotalMs = totalQueimas * 50;
+  let mediaFinal = mediaPura + penalidadeTotalMs;
+
+  document.getElementById('valMedia').innerText = `${mediaFinal} ms`;
+
+  // EXIBE CÁLCULO EXPLICITO DE PENALIDADES
+  const boxPenalidade = document.getElementById('boxPenalidades');
+  const detalheCalculo = document.getElementById('detalheCalculo');
+  boxPenalidade.style.display = "block";
+
+  detalheCalculo.innerHTML = `
+    <strong>Soma das 10 rodadas:</strong> ${somaTempos} ms <br>
+    <strong>Média Bruta (Soma ÷ 5):</strong> ${mediaPura} ms <br>
+    <strong>Penalidade por Queimas:</strong> ${totalQueimas} queima(s) × 50 ms = <span style="color:#ff5252;">+${penalidadeTotalMs} ms</span> <br>
+    <hr style="border-color: #323238; margin: 5px 0;">
+    <strong style="font-size: 15px; color: #00e676;">Média Final Calculada: ${mediaPura} ms + ${penalidadeTotalMs} ms = ${mediaFinal} ms</strong>
+  `;
+
+  // VERIFICA SE ENTRA NO TOP 7
+  let qualificaTop7 = false;
+  if (ranking.length < 7 || mediaFinal < ranking[ranking.length - 1].media) {
+    qualificaTop7 = true;
+  }
+
+  if (qualificaTop7) {
+    aguardandoNome = true;
+    document.getElementById('lblStatus').innerText = "FIM DE JOGO! VOCÊ ENTROU NO TOP 7!";
+    document.getElementById('boxCadastro').style.display = "block";
+    document.getElementById('txtNomePiloto').focus();
+
+    // --- ADICIONADO: Envia sinal para o Arduino tocar a vinheta e piscar os LEDs ---
+    enviarComandoSerial("COMEMORAR");
+  } else {
+    document.getElementById('lblStatus').innerText = "Fim de Jogo! Média obtida: " + mediaFinal + " ms. Pressione o BOTÃO para o próximo jogador.";
+  }
+}
+
+// Funçõozinha auxiliar para enviar mensagens ao Arduino (adicione no final do script)
+async function enviarComandoSerial(mensagem) {
+  if (portaSerial && portaSerial.writable) {
+    const escritor = portaSerial.writable.getWriter();
+    const encoder = new TextEncoder();
+    await escritor.write(encoder.encode(mensagem + "\n"));
+    escritor.releaseLock();
+  }
+}
+
+    // SALVAR PILOTO NO RANKING TOP 7
+    function salvarPilotoNoRanking() {
+      let nomeInput = document.getElementById('txtNomePiloto').value.trim();
+      let nomePiloto = nomeInput !== "" ? nomeInput : "Piloto F1";
+
+      let somaTempos = rodadasValidas.reduce((a, b) => a + b, 0);
+      let mediaPura = Math.round(somaTempos / 5);
+      let mediaFinal = mediaPura + (totalQueimas * 50);
+
+      ranking.push({ nome: nomePiloto, media: mediaFinal });
+      
+      // Ordena do menor tempo para o maior
+      ranking.sort((a, b) => a.media - b.media);
+      
+      // Mantém apenas os 7 melhores
+      if (ranking.length > 7) {
+        ranking = ranking.slice(0, 7);
+      }
+
+      // Salva no navegador
+      localStorage.setItem('f1_top7_ranking', JSON.stringify(ranking));
+
+      atualizarTabelaRanking();
+      resetarJogoParaNovoJogador();
+    }
+
+    // ATUALIZA TABELA VISUAL DO RANKING
+    function atualizarTabelaRanking() {
+      const tbody = document.getElementById('tabelaRanking');
+      tbody.innerHTML = "";
+
+      for (let i = 0; i < 7; i++) {
+        let tr = document.createElement('tr');
+        if (ranking[i]) {
+          tr.innerHTML = `
+            <td style="color:#f59e0b; font-weight:bold;">${i + 1}º</td>
+            <td>${ranking[i].nome}</td>
+            <td style="color:#00e676; font-weight:bold;">${ranking[i].media} ms</td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td style="color:#4d4d57;">${i + 1}º</td>
+            <td style="color:#4d4d57;">--</td>
+            <td style="color:#4d4d57;">--</td>
+          `;
+        }
+        tbody.appendChild(tr);
+      }
+    }
+
+    // RESET PARA PRÓXIMA PARTIDA (DEIXA LIMPO)
+    function resetarJogoParaNovoJogador() {
+      rodadasValidas = [];
+      totalQueimas = 0;
+      historicoTentativas = [];
+      jogoFinalizado = false;
+      aguardandoNome = false;
+
+      document.getElementById('boxCadastro').style.display = "none";
+      document.getElementById('boxPenalidades').style.display = "none";
+      document.getElementById('txtNomePiloto').value = "";
+      document.getElementById('valMedia').innerText = "-- ms";
+
+      atualizarInterface();
+      document.getElementById('lblStatus').innerText = "Pressione o botão para iniciar a Rodada 1/5";
+    }
+
+    // PERMITE CONFIRMAR NOME PELO ENTER DO TECLADO
+    document.getElementById('txtNomePiloto').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        salvarPilotoNoRanking();
+      }
+    });
+
+    document.getElementById('btnSalvarNome').addEventListener('click', () => {
+      salvarPilotoNoRanking();
+    });
+  </script>
+</body>
+</html>
